@@ -1,0 +1,5 @@
+temp/
+*.tee
+temp*
+tools/GenomeAnalysisTK-3.4-46
+tools/picard-tools-1.138

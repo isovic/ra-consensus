@@ -1,0 +1,19 @@
+# version: 8ae2928
+#/home/isovic/work/eclipse-workspace/git/ra-integrate/components/ra/bin/unitigger -d layout_20151114_221431_depot -w layout_20151114_221431 
+# filter reads parameters
+# trimming parameters
+READ_LEN_THRESHOLD: 100000
+MAX_READS_IN_TIP: 2
+MAX_DEPTH_WITHOUT_EXTRA_FORK: 5
+
+# bubble popping parameters
+MAX_NODES: 160
+MAX_DISTANCE: 1600000
+MAX_DIFFERENCE: 0.250000
+
+# contig extraction parameters
+MAX_BRANCHES: 18
+MAX_START_NODES: 100
+LENGTH_THRESHOLD: 0.050000
+QUALITY_THRESHOLD: 0.200000
+

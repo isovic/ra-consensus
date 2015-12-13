@@ -1,0 +1,6 @@
+[submodule "tools/samscripts"]
+	path = tools/samscripts
+	url = https://github.com/isovic/samscripts.git
+[submodule "tools/graphmap"]
+	path = tools/graphmap
+	url = https://github.com/isovic/graphmap.git
