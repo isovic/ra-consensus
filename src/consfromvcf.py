@@ -1,5 +1,9 @@
 #! /usr/bin/python
 
+# Copyright Ivan Sovic, 2015. www.sovic.org
+#
+# Creates a pileup from a given SAM/BAM file, and calls consensus bases (or variants).
+
 import os;
 import sys;
 import subprocess;

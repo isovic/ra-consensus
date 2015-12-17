@@ -3,3 +3,14 @@ temp/
 temp*
 tools/GenomeAnalysisTK-3.4-46
 tools/picard-tools-1.138
+tools/kalign-1.04.tgz
+tools/kalign-1.04/
+tools/mafft-7.267-without-extensions-src.tgz
+tools/mafft-7.267-without-extensions/
+tools/mutatrix/
+tools/poaV2.tar.gz
+tools/poaV2/
+tests/layout_20151114_221431/contigs_fast.fasta.gmidx
+tests/layout_20151114_221431/contigs_fast.fasta.gmidxsec
+tests/layout_20151114_221431/dotplot.png
+data/
