@@ -9,13 +9,16 @@ import sys;
 import operator;
 import subprocess;
 
+VERBOSE_VARIANT_FILE = True;
+OUTPUT_N_VARIANTS = False;
+
 def increase_in_dict(dict_counter, value):
 	try:
 		dict_counter[value] += 1;
 	except:
 		dict_counter[value] = 1;
 
-def process_mpileup_line(line, line_number, ret_vcf_list, ret_snp_count, ret_insertion_count, ret_deletion_count, ret_num_undercovered_bases, ret_num_called_bases, ret_num_correct_bases, ret_coverage_sum, coverage_threshold, verbose=False):
+def process_mpileup_line(line, line_number, ret_variant_list, ret_vcf_list, ret_snp_count, ret_insertion_count, ret_deletion_count, ret_num_undercovered_bases, ret_num_called_bases, ret_num_correct_bases, ret_coverage_sum, coverage_threshold, verbose=False):
 	# Split the line, and perform a sanity check.
 	split_line = line.strip().split('\t');
 	if (len(split_line) < 5 or len(split_line) > 6):
@@ -137,17 +140,18 @@ def process_mpileup_line(line, line_number, ret_vcf_list, ret_snp_count, ret_ins
 			pass;
 		#variant_line = 'undercovered1\tpos = %s\tcoverage = %d\tnon_indel_cov_curr = %d\tmost_common_base_count = %d\tref_base = %s\tcons_base = %s\tbase_counts = %s\tinsertion_counts = %s\tdeletion_counts = %s\t%s' % (position, int(coverage), non_indel_coverage_current_base, most_common_base_count, ref_base, sorted_base_counts[-1][0], str(sorted_base_counts), str(insertion_event_counts), str(deletion_event_counts), line.strip());
 		#ret_variant_list.append(variant_line);
-		# variant_line = 'undercovered1\tpos = %s\tref = %s\tcoverage = %d\tbase_counts = %s\tinsertion_counts = %s\tdeletion_counts = %s' % (position, ref_name, int(coverage), str(sorted_base_counts), str(insertion_event_counts), str(deletion_event_counts));
-		# ret_variant_list.append(variant_line);
+		variant_line = 'undercovered1\tpos = %s\tref = %s\tcoverage = %d\tbase_counts = %s\tinsertion_counts = %s\tdeletion_counts = %s' % (position, ref_name, int(coverage), str(sorted_base_counts), str(insertion_event_counts), str(deletion_event_counts));
+		ret_variant_list.append(variant_line);
 
-		### VCF output ###
-		qual = 1000;
-		info = 'DP=%s;TYPE=snp' % (coverage);
-		ref_field = ref_base;
-		alt_field = 'N';
-		vcf_line = '%s\t%s\t.\t%s\t%s\t%d\tPASS\t%s' % (ref_name, position, ref_field, alt_field, qual, info);
-		ret_vcf_list.append(vcf_line);
-		##################
+		if (OUTPUT_N_VARIANTS == True):
+			### VCF output ###
+			qual = 1000;
+			info = 'DP=%s;TYPE=snp' % (coverage);
+			ref_field = ref_base;
+			alt_field = 'N';
+			vcf_line = '%s\t%s\t.\t%s\t%s\t%d\tPASS\t%s' % (ref_name, position, ref_field, alt_field, qual, info);
+			ret_vcf_list.append(vcf_line);
+			##################
 		
 	else:
 		ret_num_called_bases[0] += 1;
@@ -183,8 +187,8 @@ def process_mpileup_line(line, line_number, ret_vcf_list, ret_snp_count, ret_ins
 			if (len(sorted_base_counts) > 0):
 				ret_snp_count[0] += 1;
 	#			ret_variant_list.append(line_number);
-				# variant_line = 'SNP\tpos = %s\tref = %s\tcoverage = %d\tnon_indel_cov_curr = %d\tmost_common_base_count = %d\tref_base = %s\tcons_base = %s\tbase_counts = %s\tinsertion_counts = %s\tdeletion_counts = %s\t%s' % (position, ref_name, int(coverage), non_indel_coverage_current_base, most_common_base_count, ref_base, ('{}') if (len(sorted_base_counts) == 0) else (str(sorted_base_counts[-1][0])), str(sorted_base_counts), str(insertion_event_counts), str(deletion_event_counts), line.strip());
-				# ret_variant_list.append(variant_line);
+				variant_line = 'SNP\tpos = %s\tref = %s\tcoverage = %d\tnon_indel_cov_curr = %d\tmost_common_base_count = %d\tref_base = %s\tcons_base = %s\tbase_counts = %s\tinsertion_counts = %s\tdeletion_counts = %s\t%s' % (position, ref_name, int(coverage), non_indel_coverage_current_base, most_common_base_count, ref_base, ('{}') if (len(sorted_base_counts) == 0) else (str(sorted_base_counts[-1][0])), str(sorted_base_counts), str(insertion_event_counts), str(deletion_event_counts), line.strip());
+				ret_variant_list.append(variant_line);
 				
 				### VCF output ###
 				alt_base = ('{}') if (len(sorted_base_counts) == 0) else (str(sorted_base_counts[-1][0]));
@@ -197,7 +201,7 @@ def process_mpileup_line(line, line_number, ret_vcf_list, ret_snp_count, ret_ins
 				##################
 			else:
 				sys.stderr.write('\nWarning: a SNP was detected, but there were no bases in the sorted_base_counts!')
-				# variant_line = 'SNP\tpos = %s\tref = %s\tcoverage = %d\tnon_indel_cov_curr = %d\tmost_common_base_count = %d\tref_base = %s\tcons_base = %s\tbase_counts = %s\tinsertion_counts = %s\tdeletion_counts = %s\t%s' % (position, ref_name, int(coverage), non_indel_coverage_current_base, most_common_base_count, ref_base, ('{}') if (len(sorted_base_counts) == 0) else (str(sorted_base_counts[-1][0])), str(sorted_base_counts), str(insertion_event_counts), str(deletion_event_counts), line.strip());
+				variant_line = 'SNP\tpos = %s\tref = %s\tcoverage = %d\tnon_indel_cov_curr = %d\tmost_common_base_count = %d\tref_base = %s\tcons_base = %s\tbase_counts = %s\tinsertion_counts = %s\tdeletion_counts = %s\t%s' % (position, ref_name, int(coverage), non_indel_coverage_current_base, most_common_base_count, ref_base, ('{}') if (len(sorted_base_counts) == 0) else (str(sorted_base_counts[-1][0])), str(sorted_base_counts), str(insertion_event_counts), str(deletion_event_counts), line.strip());
 				sys.stderr.write('\n');
 			
 		else:
@@ -214,135 +218,157 @@ def process_mpileup_line(line, line_number, ret_vcf_list, ret_snp_count, ret_ins
 		
 
 
-	### Handling indel consensus.
-	### Put a different coverage threshold. Here we are interested even in the reads
-	### which had a '*' at the current position (because we don't know where it ends).
-	non_indel_coverage_next_base = int(coverage) - end_counts - deletion_count - insertion_count;
-	
-	if ((non_indel_coverage_next_base + deletion_count + insertion_count) > coverage_threshold):
-		# Sanity check, just to see if there actually were any insertions (to avoid index out of bounds error).
-		# If there are insertions, get the most common one.
-		if (len(insertion_event_counts.keys()) > 0):
-			# print 'insertion_event_counts = %s' % (str(insertion_event_counts));
+	### Indels got called even with coverage below the threshold. Attempting to correct this.
+	if ((int(coverage) - end_counts) >= coverage_threshold):
+		### Handling indel consensus.
+		### Put a different coverage threshold. Here we are interested even in the reads
+		### which had a '*' at the current position (because we don't know where it ends).
+		non_indel_coverage_next_base = int(coverage) - end_counts - deletion_count - insertion_count;
+		
+		if ((non_indel_coverage_next_base + deletion_count + insertion_count) > coverage_threshold):
+			# Sanity check, just to see if there actually were any insertions (to avoid index out of bounds error).
+			# If there are insertions, get the most common one.
+			if (len(insertion_event_counts.keys()) > 0):
+				# print 'insertion_event_counts = %s' % (str(insertion_event_counts));
 
-			sorted_insertion_counts = sorted(insertion_event_counts.items(), key=operator.itemgetter(1));
-			most_common_insertion_count = sorted_insertion_counts[-1][1];
-			most_common_insertion_length = len(sorted_insertion_counts[-1][0]);
-			insertion_unique = True if (sum([int(insertion_count[1] == most_common_insertion_count) for insertion_count in sorted_insertion_counts]) == 1) else False;
+				sorted_insertion_counts = sorted(insertion_event_counts.items(), key=operator.itemgetter(1));
+				most_common_insertion_count = sorted_insertion_counts[-1][1];
+				most_common_insertion_length = len(sorted_insertion_counts[-1][0]);
+				insertion_unique = True if (sum([int(insertion_count[1] == most_common_insertion_count) for insertion_count in sorted_insertion_counts]) == 1) else False;
 
-			insertion_lengths = {};
-			for insertion_event in insertion_event_counts:
-				# print insertion_event;
-				try:
-					insertion_lengths[len(insertion_event)] += insertion_event_counts[insertion_event];
-				except:
-					insertion_lengths[len(insertion_event)] = insertion_event_counts[insertion_event];
-			sorted_insertion_lengths = sorted(insertion_lengths.items(), key=operator.itemgetter(1));
-
-			most_common_insertions = {};
-			for insertion_event in insertion_event_counts:
-				if (len(insertion_event) == sorted_insertion_lengths[-1][0]):
+				insertion_lengths = {};
+				for insertion_event in insertion_event_counts:
+					# print insertion_event;
 					try:
-						most_common_insertions[insertion_event] += insertion_event_counts[insertion_event];
+						insertion_lengths[len(insertion_event)] += insertion_event_counts[insertion_event];
 					except:
-						most_common_insertions[insertion_event] = insertion_event_counts[insertion_event];
-			sorted_most_common_insertions = sorted(most_common_insertions.items(), key=operator.itemgetter(1));
-			most_common_insertion = sorted_most_common_insertions[-1][0] if (len(sorted_most_common_insertions) > 0) else None;
+						insertion_lengths[len(insertion_event)] = insertion_event_counts[insertion_event];
+				sorted_insertion_lengths = sorted(insertion_lengths.items(), key=operator.itemgetter(1));
+
+				most_common_insertions = {};
+				for insertion_event in insertion_event_counts:
+					if (len(insertion_event) == sorted_insertion_lengths[-1][0]):
+						try:
+							most_common_insertions[insertion_event] += insertion_event_counts[insertion_event];
+						except:
+							most_common_insertions[insertion_event] = insertion_event_counts[insertion_event];
+				sorted_most_common_insertions = sorted(most_common_insertions.items(), key=operator.itemgetter(1));
+				most_common_insertion = sorted_most_common_insertions[-1][0] if (len(sorted_most_common_insertions) > 0) else None;
 
 
 
-			# print 'sorted_insertion_counts = %s' % (str(sorted_insertion_counts));
-			# print 'most_common_insertion_count = %s' % (str(most_common_insertion_count));
-			# print 'most_common_insertion_length = %s' % (str(most_common_insertion_length));
-			# print 'insertion_unique = %s' % (str(insertion_unique));
-			# print 'insertion_lengths = %s' % (str(insertion_lengths));
-			# print 'sorted_insertion_lengths = %s' % (str(sorted_insertion_lengths));
+				# print 'sorted_insertion_counts = %s' % (str(sorted_insertion_counts));
+				# print 'most_common_insertion_count = %s' % (str(most_common_insertion_count));
+				# print 'most_common_insertion_length = %s' % (str(most_common_insertion_length));
+				# print 'insertion_unique = %s' % (str(insertion_unique));
+				# print 'insertion_lengths = %s' % (str(insertion_lengths));
+				# print 'sorted_insertion_lengths = %s' % (str(sorted_insertion_lengths));
 
-			most_common_insertion_count = sorted_insertion_lengths[-1][1];
-			most_common_insertion_length = sorted_insertion_lengths[-1][0];
-			# print 'most_common_insertion_count = %s' % (str(most_common_insertion_count));
-			# print 'most_common_insertion_length = %s' % (str(most_common_insertion_length));
-			# print 'sorted_most_common_insertions = %s' % (str(sorted_most_common_insertions));
-			# print 'most_common_insertion = %s' % (str(most_common_insertion));
-			# print '';
+				most_common_insertion_count = sorted_insertion_lengths[-1][1];
+				most_common_insertion_length = sorted_insertion_lengths[-1][0];
+				# print 'most_common_insertion_count = %s' % (str(most_common_insertion_count));
+				# print 'most_common_insertion_length = %s' % (str(most_common_insertion_length));
+				# print 'sorted_most_common_insertions = %s' % (str(sorted_most_common_insertions));
+				# print 'most_common_insertion = %s' % (str(most_common_insertion));
+				# print '';
 
-# stao sam ovdje jer sam pokusavao naci kako sortirati insertione po duljini eventa, i onda uzeti najucestaliju duljinu eventa
-# za tu duljinu eventa onda uzmem da je most common insertion count i length, a event uzmem najucestaliji od njih
-# tu je logika da je originalna sekvenca mogla imati puno deletiona, a svi ostali readovi mozda nemaju te deletione 
-# ako drugi nemaju deletione ali imaju i puno SNP-ova, to bi moglo uzrokovati da se insertioni nikada ne poprave, i konacni konsensus ostane prekratak
+	# stao sam ovdje jer sam pokusavao naci kako sortirati insertione po duljini eventa, i onda uzeti najucestaliju duljinu eventa
+	# za tu duljinu eventa onda uzmem da je most common insertion count i length, a event uzmem najucestaliji od njih
+	# tu je logika da je originalna sekvenca mogla imati puno deletiona, a svi ostali readovi mozda nemaju te deletione 
+	# ako drugi nemaju deletione ali imaju i puno SNP-ova, to bi moglo uzrokovati da se insertioni nikada ne poprave, i konacni konsensus ostane prekratak
 
-		else:
-			most_common_insertion_count = 0;
-			most_common_insertion_length = 0;
-			insertion_unique = False;
-		
-		# Sanity check, just to see if there actually were any deletions (to avoid index out of bounds error).
-		# If there are deletions, get the most common one.
-		if (len(deletion_event_counts.keys()) > 0):
-			sorted_deletion_counts = sorted(deletion_event_counts.items(), key=operator.itemgetter(1));
-			most_common_deletion_count = sorted_deletion_counts[-1][1];
-			most_common_deletion_length = len(sorted_deletion_counts[-1][0]);
-			deletion_unique = True if (sum([int(deletion_count[1] == most_common_deletion_count) for deletion_count in sorted_deletion_counts]) == 1) else False;
-		else:
-			most_common_deletion_count = 0;
-			most_common_deletion_length = 0;
-			deletion_unique = False;
-		
-		if (most_common_insertion_count > most_common_deletion_count and most_common_insertion_count > non_indel_coverage_next_base):
-			# In this case, insertions are a clear winner.
-			if (insertion_unique == True):
-				#ret_insertion_count[0] += most_common_insertion_length;
-				ret_insertion_count[0] += 1;
-				ret_num_called_bases[0] += most_common_insertion_length;
-				#variant_line = 'insertion\t%d\t%s\t%s\t%s\t%s' % (most_common_insertion_count, str(sorted_base_counts), str(insertion_event_counts), str(deletion_event_counts), line.strip());
-				#ret_variant_list.append(variant_line);
+			else:
+				most_common_insertion_count = 0;
+				most_common_insertion_length = 0;
+				insertion_unique = False;
+			
+			# Sanity check, just to see if there actually were any deletions (to avoid index out of bounds error).
+			# If there are deletions, get the most common one.
+			if (len(deletion_event_counts.keys()) > 0):
+				sorted_deletion_counts = sorted(deletion_event_counts.items(), key=operator.itemgetter(1));
+				most_common_deletion_count = sorted_deletion_counts[-1][1];
+				most_common_deletion_length = len(sorted_deletion_counts[-1][0]);
+				deletion_unique = True if (sum([int(deletion_count[1] == most_common_deletion_count) for deletion_count in sorted_deletion_counts]) == 1) else False;
+			else:
+				most_common_deletion_count = 0;
+				most_common_deletion_length = 0;
+				deletion_unique = False;
+			
+			if (most_common_insertion_count > most_common_deletion_count and most_common_insertion_count > non_indel_coverage_next_base):
+				# In this case, insertions are a clear winner.
+				if (insertion_unique == True):
+					#ret_insertion_count[0] += most_common_insertion_length;
+					ret_insertion_count[0] += 1;
+					ret_num_called_bases[0] += most_common_insertion_length;
+					#variant_line = 'insertion\t%d\t%s\t%s\t%s\t%s' % (most_common_insertion_count, str(sorted_base_counts), str(insertion_event_counts), str(deletion_event_counts), line.strip());
+					#ret_variant_list.append(variant_line);
+					try:
+						temp_sorted_bc = sorted_base_counts[-1][0];
+					except:
+						temp_sorted_bc = 0;
+					
+					indel_length = most_common_insertion_length;
+					variant_line = 'ins\tpos = %s\tref = %s\tnon_indel_cov_next = %d\tnon_indel_cov_curr = %d\tmost_common_insertion_count = %d\tref_base = %s\tcons_base = %s\tbase_counts = %s\tinsertion_counts = %s\tdeletion_counts = %s\t%s' % (position, ref_name, non_indel_coverage_next_base, non_indel_coverage_current_base, most_common_insertion_count, ref_base, temp_sorted_bc, str(sorted_base_counts), str(insertion_event_counts), str(deletion_event_counts), line.strip());
+					ret_variant_list.append(variant_line);
+
+					### Insertions in the VCF format specifies the position where a insertion occurs. The ref position should contain the base which is the same as ref, but the alt field contains the ref base + the insertion event.
+					### VCF output ###
+					# alt_base = ('{}') if (len(sorted_base_counts) == 0) else (str(sorted_base_counts[-1][0]));
+					alt_base = ('{}') if (most_common_insertion == None) else (most_common_insertion);
+					qual = 1000;
+					info = 'DP=%s;TYPE=ins' % (coverage);
+					ref_field = ref_base;
+					alt_field = '%s%s' % (ref_base, sorted_insertion_counts[-1][0]);
+					vcf_line = '%s\t%s\t.\t%s\t%s\t%d\tPASS\t%s' % (ref_name, position, ref_field, alt_field, qual, info);
+					ret_vcf_list.append(vcf_line);
+					##################
+
+			elif (most_common_deletion_count > most_common_insertion_count and most_common_deletion_count > non_indel_coverage_next_base):
+				# In this case, deletions are a clear winner.
+				if (deletion_unique == True):
+					#ret_deletion_count[0] += most_common_deletion_length;
+					ret_deletion_count[0] += 1;
+					#variant_line = 'deletion\t%d\t%s\t%s\t%s\t%s' % (most_common_deletion_count, str(sorted_base_counts), str(insertion_event_counts), str(deletion_event_counts), line.strip());
+					#ret_variant_list.append(variant_line);
+					#return most_common_deletion_length;
+					variant_line = 'del\tpos = %s\tref = %s\tnon_indel_cov_next = %d\tnon_indel_cov_curr = %d\tmost_common_deletion_count = %d\tref_base = %s\tcons_base = %s\tbase_counts = %s\tinsertion_counts = %s\tdeletion_counts = %s\t%s' % (position, ref_name, non_indel_coverage_next_base, non_indel_coverage_current_base, most_common_deletion_count, ref_base, sorted_base_counts[-1][0], str(sorted_base_counts), str(insertion_event_counts), str(deletion_event_counts), line.strip());
+					ret_variant_list.append(variant_line);
+
+					### Deletions in the VCF format specifies the position where a deletion occurs, with the first base being non-deletion, and the following bases being a deletion event.
+					### VCF output ###
+					alt_base = ('{}') if (len(sorted_base_counts) == 0) else (str(sorted_base_counts[-1][0]));
+					qual = 1000;
+					info = 'DP=%s;TYPE=del' % (coverage);
+					ref_field = '%s%s' % (ref_base, sorted_deletion_counts[-1][0]);
+					alt_field = ref_base;
+					vcf_line = '%s\t%s\t.\t%s\t%s\t%d\tPASS\t%s' % (ref_name, position, ref_field, alt_field, qual, info);
+					ret_vcf_list.append(vcf_line);
+					##################
+					# print '\npos = %s, coverage_threshold = %d, (int(coverage) - end_counts) = %d' % (position, coverage_threshold, (int(coverage) - end_counts));
+					return most_common_deletion_length;
+			else:
+				# In this case, either the base count consensus wins, or the
+				# insertion/deletion count is ambiguous.
 				try:
 					temp_sorted_bc = sorted_base_counts[-1][0];
 				except:
 					temp_sorted_bc = 0;
-				
-				indel_length = most_common_insertion_length;
-				# variant_line = 'ins\tpos = %s\tref = %s\tnon_indel_cov_next = %d\tnon_indel_cov_curr = %d\tmost_common_insertion_count = %d\tref_base = %s\tcons_base = %s\tbase_counts = %s\tinsertion_counts = %s\tdeletion_counts = %s\t%s' % (position, ref_name, non_indel_coverage_next_base, non_indel_coverage_current_base, most_common_insertion_count, ref_base, temp_sorted_bc, str(sorted_base_counts), str(insertion_event_counts), str(deletion_event_counts), line.strip());
-				# ret_variant_list.append(variant_line);
 
-				### Insertions in the VCF format specifies the position where a insertion occurs. The ref position should contain the base which is the same as ref, but the alt field contains the ref base + the insertion event.
-				### VCF output ###
-				# alt_base = ('{}') if (len(sorted_base_counts) == 0) else (str(sorted_base_counts[-1][0]));
-				alt_base = ('{}') if (most_common_insertion == None) else (most_common_insertion);
-				qual = 1000;
-				info = 'DP=%s;TYPE=ins' % (coverage);
-				ref_field = ref_base;
-				alt_field = '%s%s' % (ref_base, sorted_insertion_counts[-1][0]);
-				vcf_line = '%s\t%s\t.\t%s\t%s\t%d\tPASS\t%s' % (ref_name, position, ref_field, alt_field, qual, info);
-				ret_vcf_list.append(vcf_line);
-				##################
-				
-		elif (most_common_deletion_count > most_common_insertion_count and most_common_deletion_count > non_indel_coverage_next_base):
-			# In this case, deletions are a clear winner.
-			if (deletion_unique == True):
-				#ret_deletion_count[0] += most_common_deletion_length;
-				ret_deletion_count[0] += 1;
-				#variant_line = 'deletion\t%d\t%s\t%s\t%s\t%s' % (most_common_deletion_count, str(sorted_base_counts), str(insertion_event_counts), str(deletion_event_counts), line.strip());
-				#ret_variant_list.append(variant_line);
-				#return most_common_deletion_length;
-				# variant_line = 'del\tpos = %s\tref = %s\tnon_indel_cov_next = %d\tnon_indel_cov_curr = %d\tmost_common_deletion_count = %d\tref_base = %s\tcons_base = %s\tbase_counts = %s\tinsertion_counts = %s\tdeletion_counts = %s\t%s' % (position, ref_name, non_indel_coverage_next_base, non_indel_coverage_current_base, most_common_deletion_count, ref_base, sorted_base_counts[-1][0], str(sorted_base_counts), str(insertion_event_counts), str(deletion_event_counts), line.strip());
-				# ret_variant_list.append(variant_line);
+				# print insertion_event_counts;
+				# for val in insertion_event_counts:
+				# 	print val;
+				# 	sys.stdout.flush();
 
-				### Deletions in the VCF format specifies the position where a deletion occurs, with the first base being non-deletion, and the following bases being a deletion event.
-				### VCF output ###
-				alt_base = ('{}') if (len(sorted_base_counts) == 0) else (str(sorted_base_counts[-1][0]));
-				qual = 1000;
-				info = 'DP=%s;TYPE=del' % (coverage);
-				ref_field = '%s%s' % (ref_base, sorted_deletion_counts[-1][0]);
-				alt_field = ref_base;
-				vcf_line = '%s\t%s\t.\t%s\t%s\t%d\tPASS\t%s' % (ref_name, position, ref_field, alt_field, qual, info);
-				ret_vcf_list.append(vcf_line);
-				##################
-				return most_common_deletion_length;
-		else:
-			# In this case, either the base count consensus wins, or the
-			# insertion/deletion count is ambiguous.
-			pass;
+				# ins_cov = 0;
+				# del_cov = 0;
+				ins_cov = sum([insertion_event_counts[val] for val in insertion_event_counts.keys()]) if (len(insertion_event_counts.keys()) > 0) else 0;
+				del_cov = sum([deletion_event_counts[val] for val in deletion_event_counts.keys()]) if (len(deletion_event_counts.keys()) > 0) else 0;
+				if (ins_cov > coverage_threshold):
+					variant_line = 'skipped\tpos = %s\tref = %s\tnon_indel_cov_next = %d\tnon_indel_cov_curr = %d\tmost_common_insertion_count = %d\n\t* ref_base = %s\tcons_base = %s\tbase_counts = %s\n\t* ins_cov = %d\tinsertion_counts = %s\n\t* del_cov = %d\tdeletion_counts = %s\t%s' % (position, ref_name, non_indel_coverage_next_base, non_indel_coverage_current_base, most_common_insertion_count, ref_base, temp_sorted_bc, str(sorted_base_counts), ins_cov, str(insertion_event_counts), del_cov, str(deletion_event_counts), line.strip());
+					sys.stdout.write('%s\n' % (variant_line));
+					sys.stdout.write('\n');
+					sys.stdout.flush();
+				pass;
 
 	return 0;
 
@@ -366,19 +392,22 @@ def process_mpileup(alignments_path, reference_path, mpileup_path, coverage_thre
 	
 	# lines = fp.readlines();
 	
-	# fp_variant = None;
+	if (VERBOSE_VARIANT_FILE == True):
+		fp_variant = None;
 	fp_vcf = None;
 	if (output_prefix != ''):
 		if (not os.path.exists(os.path.dirname(output_prefix))):
 			os.makedirs(os.path.dirname(output_prefix));
 
-		# variant_file = ('%s-cov_%d.variant.csv' % (output_prefix, coverage_threshold));
-		# fp_variant = open(variant_file, 'w');
+		if (VERBOSE_VARIANT_FILE == True):
+			variant_file = ('%s.csv' % output_prefix) if (output_prefix.endswith('.vcf') == True) else ('%s-cov_%d.variant.csv' % (output_prefix, coverage_threshold));
+			fp_variant = open(variant_file, 'w');
 
-		if (output_prefix.endswith('.vcf') == True):
-			vcf_file = output_prefix;
-		else:
-			vcf_file = ('%s-cov_%d.variant.vcf' % (output_prefix, coverage_threshold));
+		# if (output_prefix.endswith('.vcf') == True):
+		# 	vcf_file = output_prefix;
+		# else:
+		# 	vcf_file = ('%s-cov_%d.variant.vcf' % (output_prefix, coverage_threshold));
+		vcf_file = output_prefix if (output_prefix.endswith('.vcf') == True) else ('%s-cov_%d.variant.vcf' % (output_prefix, coverage_threshold));
 		fp_vcf = open(vcf_file, 'w');
 		fp_vcf.write('##fileformat=VCFv4.0\n');
 		fp_vcf.write('##fileDate=20150409\n');
@@ -455,9 +484,10 @@ def process_mpileup(alignments_path, reference_path, mpileup_path, coverage_thre
 		vcf_list_length = len(ret_vcf_list);
 		num_bases_to_skip = process_mpileup_line(line, i, ret_variant_list, ret_vcf_list, ret_snp_count, ret_insertion_count, ret_deletion_count, ret_num_undercovered_bases, ret_num_called_bases, ret_num_correct_bases, ret_coverage_sum, coverage_threshold, verbose=use_bed);
 
-		# if (len(ret_variant_list) > variant_list_length and fp_variant != None):
-		# 	fp_variant.write('\n'.join(ret_variant_list[variant_list_length:]) + '\n');
-		# 	fp_variant.flush();
+		if (VERBOSE_VARIANT_FILE == True):
+			if (len(ret_variant_list) > variant_list_length and fp_variant != None):
+				fp_variant.write('\n'.join(ret_variant_list[variant_list_length:]) + '\n');
+				fp_variant.flush();
 
 		if (len(ret_vcf_list) > vcf_list_length and fp_vcf != None):
 			fp_vcf.write('\n'.join(ret_vcf_list[vcf_list_length:]) + '\n');
@@ -473,8 +503,9 @@ def process_mpileup(alignments_path, reference_path, mpileup_path, coverage_thre
 
 	sys.stderr.write('\n')
 	
-	# if (fp_variant != None):
-	# 	fp_variant.close();
+	if (VERBOSE_VARIANT_FILE == True):
+		if (fp_variant != None):
+			fp_variant.close();
 
 	if (fp_vcf != None):
 		fp_vcf.close();

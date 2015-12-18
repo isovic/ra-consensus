@@ -92,12 +92,30 @@ def consensus_from_afg(contigs_file, afg_file, reads_file, out_file, ref_file=''
 	dry_run = False;
 	execute_command_w_dryrun(dry_run, '%s/fastqfilter.py readid %s %s > %s' % (SAMSCRIPTS_PATH, path_qids, reads_file, path_reads));
 	execute_command_w_dryrun(dry_run, '%s/graphmap/bin/graphmap-not_release -a anchor -b 3 -r %s -d %s -o %s' % (TOOLS_PATH, contigs_file, path_reads, path_aligns));
-	execute_command_w_dryrun(dry_run, '%s/denovoconsensus.py %s 0 %s %s' % (SCRIPT_PATH, contigs_file, path_variants, path_aligns));
+	execute_command_w_dryrun(dry_run, '%s/denovoconsensus.py %s 10 %s %s' % (SCRIPT_PATH, contigs_file, path_variants, path_aligns));
 	execute_command_w_dryrun(dry_run, '%s/consfromvcf.py %s %s %s' % (SCRIPT_PATH, contigs_file, path_variants, out_file));
 
 	if (ref_file != ''):
 		execute_command_w_dryrun(dry_run, 'dnadiff -p %s %s %s' % (path_dnadiff_raw, ref_file, contigs_file));
 		execute_command_w_dryrun(dry_run, 'dnadiff -p %s %s %s' % (path_dnadiff_polished, ref_file, out_file));
+
+def consensus_from_all_reads(contigs_file, reads_file, out_file, ref_file=''):
+	path_aligns = '%s/tmp.allreads.sam' % (os.path.dirname(out_file));
+	path_variants = '%s/tmp.allreads.vcf' % (os.path.dirname(out_file));
+	path_dnadiff_raw = '%s/tmp.dnadiff/raw' % (os.path.dirname(out_file));
+	path_dnadiff_polished = '%s/tmp.dnadiff/polished' % (os.path.dirname(out_file));
+
+	if (not os.path.exists(os.path.dirname(path_dnadiff_raw))):
+		os.makedirs(os.path.dirname(path_dnadiff_raw));
+
+	dry_run = False;
+	# execute_command_w_dryrun(dry_run, '%s/graphmap/bin/graphmap-not_release -a anchor -b 3 -r %s -d %s -o %s' % (TOOLS_PATH, contigs_file, reads_file, path_aligns));
+	execute_command_w_dryrun(dry_run, '%s/denovoconsensus.py %s 10 %s %s' % (SCRIPT_PATH, contigs_file, path_variants, path_aligns));
+	# execute_command_w_dryrun(dry_run, '%s/consfromvcf.py %s %s %s' % (SCRIPT_PATH, contigs_file, path_variants, out_file));
+
+	# if (ref_file != ''):
+		# execute_command_w_dryrun(dry_run, 'dnadiff -p %s %s %s' % (path_dnadiff_raw, ref_file, contigs_file));
+		# execute_command_w_dryrun(dry_run, 'dnadiff -p %s %s %s' % (path_dnadiff_polished, ref_file, out_file));
 
 def main():
 	dry_run = False;
@@ -123,7 +141,15 @@ def main():
 	# execute_command_with_ret(dry_run, 'dnadiff -p temp/dnadiff-ref_vs_polished/out tests/sample-dataset/NC_001416.fa temp/polished.fa');
 	# execute_command_w_dryrun(dry_run, 'mkdir -p temp/dnadiff-ref_vs_polished-all; dnadiff -p temp/dnadiff-ref_vs_polished-all/out tests/sample-dataset/NC_001416.fa temp/polished-all.fa');
 
-	consensus_from_afg('tests/layout_20151114_221431/contigs_fast.fasta', 'tests/layout_20151114_221431/contigs.afg', 'tests/sample-dataset/reads-lambda-R73.fasta', 'temp/polished-on_path.fa', 'tests/sample-dataset/NC_001416.fa');
+	# consensus_from_afg('tests/layout_20151114_221431/contigs_fast.fasta', 'tests/layout_20151114_221431/contigs.afg', 'tests/sample-dataset/reads-lambda-R73.fasta', 'temp/polished-on_path.fa', 'tests/sample-dataset/NC_001416.fa');
+	consensus_from_all_reads('tests/layout_20151114_221431/contigs_fast.fasta', 'tests/sample-dataset/reads-lambda-R73.fasta', 'temp/polished-on_path.fa', 'tests/sample-dataset/NC_001416.fa');
 
 if __name__ == "__main__":
 	main();
+
+
+
+
+### Potencijalni smjerovi:
+# tools/poaV2/poa -read_fasta data/test-msa/ecoli-all.fa tools/poaV2/blosum80.mat 2>&1 | less
+# /usr/bin/time bin/mafft --thread 4 ../../data/test-msa/ecoli-all.fa > ../../data/test-msa/ecoli-msa
