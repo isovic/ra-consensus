@@ -14,3 +14,6 @@ tests/layout_20151114_221431/contigs_fast.fasta.gmidx
 tests/layout_20151114_221431/contigs_fast.fasta.gmidxsec
 tests/layout_20151114_221431/dotplot.png
 data/
+*.gmidx
+*.gmidxsec
+tests/out
