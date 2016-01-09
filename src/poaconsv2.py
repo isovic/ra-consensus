@@ -196,12 +196,15 @@ def check_overlap(sam_line1, sam_line2, min_overlap_percent):
 
 def construct_contig_from_overlapping_sams(ctg_seqs, contig_sams):
 	new_contig = '';
+	new_contig_cigar = [];
 
 	overhang_before = contig_sams[0].pos - 1;
 	if (DEBUG_VERBOSE == True):
 		print 'overhang_before = %d' % (contig_sams[0].pos - 1);
 
 	new_contig += ctg_seqs[0][0:overhang_before];
+	if (overhang_before > 0):
+		new_contig_cigar.append([overhang_before, '=']);
 
 	non_clipped_len = 0;
 
@@ -210,6 +213,10 @@ def construct_contig_from_overlapping_sams(ctg_seqs, contig_sams):
 		sam_line = contig_sams[i];
 		start_pos = sam_line.clip_count_front;
 		end_pos = (len(sam_line.seq) - sam_line.clip_count_back) if ((i + 1) == len(contig_sams)) else sam_line.FindBasePositionOnRead(contig_sams[i+1].pos - 1); # (contig_sams[i+1].pos - sam_line.pos);
+
+# Stao sam ovdje, duljina reada procitana iz CIGAR stringa nije jednaka duljini seq polja.
+# Potencijalno je to zbog krivih koordinata na CIGAR stringu.
+# Trebao bih jos jednu stvar napraviti u utility_sam, a to je da funkcija CalcCigarStartingPositions moze razlomiti sve eventove na pojedinacne baze, a ne samo matcheve.
 
 		if (DEBUG_VERBOSE == True):
 			print 'start_pos = %d' % (start_pos);
@@ -227,6 +234,8 @@ def construct_contig_from_overlapping_sams(ctg_seqs, contig_sams):
 		new_chunk = sam_line.seq[start_pos:end_pos];
 		non_clipped_len += len(new_chunk);
 		new_contig += new_chunk;
+		new_contig_cigar += sam_line.GetCigarBetweenBases(start_pos, end_pos+1);
+		# new_contig_cigar.append([1, '\n']);
 		i += 1;
 
 		if (DEBUG_VERBOSE == True):
@@ -241,12 +250,22 @@ def construct_contig_from_overlapping_sams(ctg_seqs, contig_sams):
 		print 'contig_sams[-1].pos - 1 = %d' % (contig_sams[-1].pos - 1);
 		print 'contig_sams[-1].CalcReferenceLengthFromCigar() = %d' % (contig_sams[-1].CalcReferenceLengthFromCigar());
 	new_contig += ctg_seqs[0][overhang_after:-1];
+	if ((len(ctg_seqs[0]) - overhang_after) > 0):
+		new_contig_cigar.append([(len(ctg_seqs[0]) - overhang_after), '=']);
 
 	if (DEBUG_VERBOSE == True):
 		print 'len(new_contig) after adding the overhang = %d' % (len(new_contig));
 		print 'len(ctg_seqs[0]) = %d' % (len(ctg_seqs[0]));
 	
-	return [new_contig, non_clipped_len];
+	# for val in new_contig_cigar:
+	# 	print val;
+	new_contig_cigar_string = ''.join(('%d%s' % (val[0], val[1])) for val in new_contig_cigar);
+	# fp1 = open('temp.txt', 'w');
+	# fp1.write('%s\n' % new_contig_cigar_string);
+	# fp1.close();
+	# exit(1);
+
+	return [new_contig, non_clipped_len, new_contig_cigar_string];
 
 ### Parameter 'single_contig_file' is the path to a file containing only single contig sequence. If the original contig file was a multifasta, then a single contig
 ### from that multifasta needs to be extracted to a separate file, which is the file provided through this parameter.
@@ -263,8 +282,8 @@ def extract_alternate_contigs(single_contig_file, reads_file, out_alt_ctg_file, 
 		os.path.makedirs(os.path.dirname(out_alt_ctg_file));
 
 	### Generate alignments.
-	execute_command('%s/graphmap/bin/Linux-x64/graphmap -a anchor -b 3 -r %s -d %s -o %s' % (TOOLS_PATH, single_contig_file, reads_file, path_aligns));
-	execute_command('samtools view -Sb %s | samtools sort - %s && samtools view -h %s.bam > %s' % (path_aligns, path_aligns_sorted_basename, path_aligns_sorted_basename, path_aligns_sorted_sam));
+	# execute_command('%s/graphmap/bin/Linux-x64/graphmap -a anchor -b 3 -r %s -d %s -o %s' % (TOOLS_PATH, single_contig_file, reads_file, path_aligns));
+	# execute_command('samtools view -Sb %s | samtools sort - %s && samtools view -h %s.bam > %s' % (path_aligns, path_aligns_sorted_basename, path_aligns_sorted_basename, path_aligns_sorted_sam));
 
 	[ctg_headers, ctg_seqs, ctg_quals] = fastqparser.read_fastq(single_contig_file);
 	[headers, all_sam_lines] = utility_sam.LoadSAM(path_aligns_sorted_sam);
@@ -277,9 +296,6 @@ def extract_alternate_contigs(single_contig_file, reads_file, out_alt_ctg_file, 
 			continue;
 		seq_len = len(sam_line.seq) - sam_line.clip_count_front - sam_line.clip_count_back;
 		cigop_counts = sam_line.CountAlignmentOps();
-		# print cigop_counts;
-		# if (cigop_counts == {}):
-		# 	print sam_line.original_line;
 		### Check if the CIGAR string is actually in the extended format.
 		if ('M' in cigop_counts):
 			sys.stderr.write('Warning: alignment does not contain the *extended* CIGAR format! Skipping alignment.\n');
@@ -387,9 +403,18 @@ def extract_alternate_contigs(single_contig_file, reads_file, out_alt_ctg_file, 
 		print '    len(unused_sams) = %d' % len(unused_sams);
 
 
-		[new_contig, non_clipped_len] = construct_contig_from_overlapping_sams(ctg_seqs, contig_sams);
+		[new_contig, non_clipped_len, new_contig_cigar] = construct_contig_from_overlapping_sams(ctg_seqs, contig_sams);
+
+		test_sam_line = utility_sam.SAMLine();
+		test_sam_line.seq = new_contig;
+		test_sam_line.cigar = new_contig_cigar;
+
+		print 'test_sam_line.CalcReadLengthFromCigar() = %d' % (test_sam_line.CalcReadLengthFromCigar());
+		print 'test_sam_line.CalcReferenceLengthFromCigar() = %d' % (test_sam_line.CalcReferenceLengthFromCigar());
+		print 'len(test_sam_line.seq) = %d' % (len(test_sam_line.seq));
 
 		print '*********************    len(new_contig) = %d, non_clipped_len = %d' % (len(new_contig), non_clipped_len);
+		exit(1);
 
 		if (float(non_clipped_len) < 0.85*float(len(ctg_seqs[0]))):
 			# print 'Tu sam!';
@@ -424,7 +449,7 @@ def TEST_SIMULATE():
 def TEST_SAM_TO_CONTIG(single_contig_file, contig_sam, output_alt_contig_fasta):
 	[ctg_headers, ctg_seqs, ctg_quals] = fastqparser.read_fastq(single_contig_file);
 	[headers, contig_sams] = utility_sam.LoadSAM(contig_sam);
-	[new_contig, non_clipped_len] = construct_contig_from_overlapping_sams(ctg_seqs, contig_sams);
+	[new_contig, non_clipped_len, new_contig_cigar] = construct_contig_from_overlapping_sams(ctg_seqs, contig_sams);
 
 	fp = open(output_alt_contig_fasta, 'w');
 	fp.write('>Alternate contig\n');
