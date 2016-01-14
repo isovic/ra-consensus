@@ -17,3 +17,5 @@ data/
 *.gmidx
 *.gmidxsec
 tests/out
+comparison/
+examples/results
