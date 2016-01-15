@@ -18,4 +18,4 @@ data/
 *.gmidxsec
 tests/out
 comparison/
-examples/results
+examples/results*

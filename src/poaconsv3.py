@@ -61,14 +61,14 @@ def consensus_from_pir(pir_path):
 	return cons_seq;
 
 def run(raw_contig_path, reads_path, out_consensus_path):
-	out_folder = os.path.dirname(out_file);
+	out_folder = os.path.dirname(out_consensus_path);
 	temp_folder = '%s/temp' % (out_folder);
-	out_basename = os.path.splitext(os.path.basename(out_file))[0];
+	out_basename = os.path.splitext(os.path.basename(out_consensus_path))[0];
 
 	if (not os.path.exists(out_folder)):
-		os.path.makedirs(os.path.dirname(out_folder));
+		os.makedirs(out_folder);
 	if (not os.path.exists(temp_folder)):
-		os.path.makedirs(os.path.dirname(temp_folder));
+		os.makedirs(temp_folder);
 
 	# ### Input paths
 	# raw_contig = '/home/isovic/work/eclipse-workspace/git/ra-consensus/tests/miniasm/layout.fasta';
@@ -83,6 +83,9 @@ def run(raw_contig_path, reads_path, out_consensus_path):
 	pir_path = '%s/frags_for_msa.pir' % (temp_folder);
 
 	align(raw_contig_path, reads_path, sorted_alns);
+
+	fp_consensus = open(out_consensus_path, 'w');
+	fp_consensus.close();
 
 	[ctg_headers, ctg_seqs, ctg_quals] = fastqparser.read_fastq(raw_contig_path);
 	for i in xrange(0, len(ctg_headers)):
@@ -104,10 +107,10 @@ def run(raw_contig_path, reads_path, out_consensus_path):
 		# for i in xrange(5, 6):
 			if (DEBUG_VERBOSE == True): sys.stderr.write('Alternate contig %d subsampled starting positions:\n' % (i));
 			alt_contig_seq = altctg.construct_contig_from_sams(ctg_seqs[0], alt_contigs[i]);
-			ctg_sample_pos = altctg.subsample_ref_positions(ctg_seqs[0], alt_contigs[i], 5000);
+			ctg_sample_pos = altctg.subsample_ref_positions(ctg_seqs[0], alt_contigs[i], 1000);
+			sample_pos_keys = sorted(ctg_sample_pos.keys());
 
 			### Sanity check that the reference sample positions are the same for every contig.
-			sample_pos_keys = sorted(ctg_sample_pos.keys());
 			if (i > 0 and sample_pos_keys != prev_sample_pos_keys):
 				sys.stderr.write('ERROR: Sample positions calculated wrongly - missing a sample key for contig #%d!\n' % (i));
 			prev_sample_pos_keys = sample_pos_keys;
@@ -118,7 +121,7 @@ def run(raw_contig_path, reads_path, out_consensus_path):
 			all_alt_contig_frags.append(alt_contig_frags);
 
 			### Write contig to disk for debug purposes.
-			fp_ctg.write('>Alternate contig %d, len: %d\n%s\n' % (i, len(alt_contig_seq), alt_contig_seq));
+			fp_ctg.write('>%s Alternate contig %d, len: %d\n%s\n' % (contig_name, i, len(alt_contig_seq), alt_contig_seq));
 
 			### Just verbose.
 			if (DEBUG_VERBOSE == True):
@@ -128,28 +131,31 @@ def run(raw_contig_path, reads_path, out_consensus_path):
 				sys.stderr.write('\n');
 		fp_ctg.close();
 
-		### Process all fragments with a MSA tool. First, for every fragment, all alternate sequences need to be output.
-		fp_consensus = open(out_consensus_path, 'w');
+		### Process all fragments with an MSA tool. First, for every fragment, all alternate sequences need to be output.
+		fp_consensus = open(out_consensus_path, 'a');
 		timestamp = strftime("%Y/%m/%d %H:%M:%S", gmtime());
-		fp_consensus.write('>Consensus_with_POA %s\n' % (timestamp));
+		fp_consensus.write('>%s Consensus_with_POA %s\n' % (contig_name, timestamp));
 		num_fragments = (0) if (len(all_alt_contig_frags) == 0) else (len(all_alt_contig_frags[0]));
 		for i in xrange(0, num_fragments):
-			if (DEBUG_VERBOSE == True): sys.stderr.write('Writing fragment #%d for alternate contigs.\n' % (i));
+		# for i in xrange(9, 10):
+			if (DEBUG_VERBOSE == True):
+				try:
+					sys.stderr.write('Writing fragment #%d for alternate contigs. Coordinates: %dbp - %dbp.\n' % (i, (0 if (i == 0) else sample_pos_keys[i-1]), sample_pos_keys[i]));
+				except:
+					sys.stderr.write('Writing fragment #%d for alternate contigs.\n' % (i));
+
 			fp_frags = open(frags_path, 'w');
 			for j in xrange(0, len(all_alt_contig_frags)):
 				fp_frags.write('>Fragment %d for alt contig %d\n' % (i, j));
 				fp_frags.write('%s\n' % (all_alt_contig_frags[j][i]));
 			fp_frags.close();
-			if (DEBUG_VERBOSE == True): sys.stderr.write('Fragments written, proceeding to MSA.\n');
+			if (DEBUG_VERBOSE == True): sys.stderr.write('Fragments written, proceeding to MSA.');
 
-			execute_command('%s/poaV2/poa -do_global -do_progressive -read_fasta %s -pir %s %s/poaV2/blosum80.mat' % (TOOLS_PATH, frags_path, pir_path, TOOLS_PATH));
-			# execute_command('%s/poaV2/poa -do_global -do_progressive -read_fasta %s -pir %s %s/poaV2/all1.mat' % (TOOLS_PATH, temp_subseq_file, temp_msa_file, TOOLS_PATH));
+			# execute_command('%s/poaV2/poa -do_global -do_progressive -read_fasta %s -pir %s %s/poaV2/blosum80.mat' % (TOOLS_PATH, frags_path, pir_path, TOOLS_PATH));
+			execute_command('%s/poaV2/poa -do_global -do_progressive -read_fasta %s -pir %s %s/poaV2/all1.mat' % (TOOLS_PATH, frags_path, pir_path, TOOLS_PATH));
 			frag_consensus = consensus_from_pir(pir_path);
 			fp_consensus.write('%s' % (frag_consensus));
 		fp_consensus.close();
-
-		# execute_command('dnadiff -p dnadiff/consensus ../../sample-dataset/NC_001416.fa consensus.fasta');
-		# execute_command('dnadiff -p dnadiff/raw-miniasm ../../sample-dataset/NC_001416.fa ../../miniasm/layout.fasta');
 
 def main():
 	# ### Input paths
